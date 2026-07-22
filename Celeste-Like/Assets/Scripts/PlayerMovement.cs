@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
 
         if(move != 0) 
         {
-            agent.MoveX(Mathf.Sign(move)*xMoveSpeed);
+            agent.MoveX(Mathf.Sign(move)*xMoveSpeed, null);
         }
     }
 }

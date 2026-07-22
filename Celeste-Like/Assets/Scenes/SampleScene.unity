@@ -166,6 +166,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2561652a061f63e47953f2f31e8d11b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Agent
+  sizeX: 8
+  sizeY: 8
+  ridingObject: {fileID: 0}
 --- !u!114 &497601170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -613,6 +616,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1817538713}
   - component: {fileID: 1817538712}
+  - component: {fileID: 1817538714}
+  - component: {fileID: 1817538716}
+  - component: {fileID: 1817538715}
   m_Layer: 7
   m_Name: white 8x8_0
   m_TagString: Untagged
@@ -694,6 +700,77 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!61 &1817538714
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1817538708}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 8, y: 8}
+    newSize: {x: 0.08, y: 0.08}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 8, y: 8}
+  m_EdgeRadius: 0
+--- !u!114 &1817538715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1817538708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09e1d1521008fc6439fe64f92ba307be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Solid
+--- !u!114 &1817538716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1817538708}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0914cd941c6d574cabdcad14237f293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::testScript
+  sol: {fileID: 1817538715}
 --- !u!1 &1872859026
 GameObject:
   m_ObjectHideFlags: 0
@@ -704,7 +781,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1872859027}
   - component: {fileID: 1872859028}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Square
   m_TagString: Untagged
   m_Icon: {fileID: 0}
