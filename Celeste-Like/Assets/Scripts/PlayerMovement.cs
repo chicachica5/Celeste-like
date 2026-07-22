@@ -6,7 +6,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] Agent agent;
     [SerializeField] PlayerInput input;
 
-    float xMoveSpeed = 0.2f;
+    float xMoveSpeed = 0.6f;
 
     // Update is called once per frame
     void FixedUpdate()

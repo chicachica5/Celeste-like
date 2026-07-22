@@ -33,7 +33,21 @@ public class Agent : MonoBehaviour
             {
                 Vector2 playerPos = new Vector2(transform.position.x, transform.position.y);
 
-                if(!Physics2D.OverlapArea(playerPos + new Vector2(sign*sizeX/2 + sign, sizeY/2), playerPos + new Vector2(sign*sizeX/2, -sizeY/2), SolidLayer))
+                Vector2 nextPos = playerPos + Vector2.right * sign;
+                float padding = 0.03f;
+
+                Debug.DrawLine(
+    nextPos + new Vector2(-sizeX/2f, -sizeY/2f),
+    nextPos + new Vector2(sizeX/2f, -sizeY/2f),
+    Color.red,
+    1f);
+
+                bool hit = Physics2D.OverlapArea(
+                    nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
+                    nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
+                    SolidLayer);
+
+                if(!hit)
                 { //does not collide
                     transform.position = new Vector3 (transform.position.x +sign, transform.position.y, transform.position.z);
                     move -= sign;

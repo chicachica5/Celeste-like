@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: f5d67fef8335c654f8ed5794e69a66ed
+guid: 46c5d0b5043e94d4691a2759df0106ae
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7283942463136224641
-    second: white 8x8_0
+      213: 3882776473987864936
+    second: red_thingie_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -46,8 +46,8 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
-  spriteExtrude: 1
+  spriteMode: 1
+  spriteExtrude: 0
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
@@ -100,7 +100,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: white 8x8_0
+      name: red_thingie_0
       rect:
         serializedVersion: 2
         x: 0
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1855e970413c51560800000000000000
-      internalID: 7283942463136224641
+      spriteID: 8695a4a91a462e530800000000000000
+      internalID: 3882776473987864936
       vertices: []
       indices: 
       edges: []
@@ -125,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -135,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      white 8x8_0: 7283942463136224641
+      red_thingie_0: 3882776473987864936
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
