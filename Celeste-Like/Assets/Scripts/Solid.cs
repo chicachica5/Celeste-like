@@ -43,11 +43,11 @@ public class Solid : MonoBehaviour
                     {
                         int sign = (int)Mathf.Sign(moveX);
 
-                        agent.MoveX(((transform.position.x + sign*sizeX/2) - (agent.transform.position.x - sign*agent.sizeX/2)), agent.Squish);
+                        agent.MoveX(((transform.position.x + sign*sizeX/2) - (agent.transform.position.x - sign*agent.sizeX/2)), agent.Squish, null);
                     }
                     else if(riding.Contains(agent))
                     {
-                        agent.MoveX(moveX, null);
+                        agent.MoveX(moveX, null, null);
                     }
                 } 
             }
@@ -62,11 +62,11 @@ public class Solid : MonoBehaviour
                     {
                         int sign = (int)Mathf.Sign(moveY);
 
-                        agent.MoveY(((transform.position.y + sign*sizeY/2) - (agent.transform.position.y - sign*agent.sizeY/2)), agent.Squish);
+                        agent.MoveY(((transform.position.y + sign*sizeY/2) - (agent.transform.position.y - sign*agent.sizeY/2)), agent.Squish, null);
                     }
                     else if(riding.Contains(agent))
                     {
-                        agent.MoveY(moveY, null);
+                        agent.MoveY(moveY, null, null);
                     }
                 } 
             }
@@ -86,7 +86,7 @@ public class Solid : MonoBehaviour
 
             foreach (Agent agent in allAgents)
             {
-                if(agent.ridingObject == this)
+                if(agent.IsRiding(this))
                 {
                     finalList.Add(agent);
                 }

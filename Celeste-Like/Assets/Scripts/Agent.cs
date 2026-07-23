@@ -11,14 +11,14 @@ public class Agent : MonoBehaviour
 
     public Solid ridingObject = null;
 
-    LayerMask SolidLayer;
+    public LayerMask SolidLayer;
 
     void Start()
     {
         SolidLayer = LayerMask.GetMask("Solids");
     }
 
-    public void MoveX(float amount, Action OnCollide)
+    public void MoveX(float amount, Action OnCollide, Action OnMove)
     {
         xRemainder += amount; //add change of movement to tracker
 
@@ -31,16 +31,9 @@ public class Agent : MonoBehaviour
 
             while(move != 0) //we move all the pixels that need to be moved
             {
-                Vector2 playerPos = new Vector2(transform.position.x, transform.position.y);
-
-                Vector2 nextPos = playerPos + Vector2.right * sign;
+                
+                Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.right * sign;
                 float padding = 0.03f;
-
-                Debug.DrawLine(
-    nextPos + new Vector2(-sizeX/2f, -sizeY/2f),
-    nextPos + new Vector2(sizeX/2f, -sizeY/2f),
-    Color.red,
-    1f);
 
                 bool hit = Physics2D.OverlapArea(
                     nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
@@ -51,6 +44,9 @@ public class Agent : MonoBehaviour
                 { //does not collide
                     transform.position = new Vector3 (transform.position.x +sign, transform.position.y, transform.position.z);
                     move -= sign;
+
+                    if(OnMove != null)
+                        OnMove();
                 }
                 else
                 {
@@ -63,7 +59,7 @@ public class Agent : MonoBehaviour
         }
     }
 
-    public void MoveY(float amount, Action OnCollide)
+    public void MoveY(float amount, Action OnCollide, Action OnMove)
     {
         yRemainder += amount; //add change of movement to tracker
 
@@ -76,15 +72,26 @@ public class Agent : MonoBehaviour
 
             while(move != 0) //we move all the pixels that need to be moved
             {
-                Vector2 playerPos = new Vector2(transform.position.x, transform.position.y);
+                Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.up * sign;
 
-                if(!Physics2D.OverlapArea(playerPos + new Vector2(sizeX/2, sign*sizeY/2 + sign), playerPos + new Vector2(-sizeX/2, sign*sizeY/2), SolidLayer))
+                float padding = 0.03f;
+
+                Collider2D col = Physics2D.OverlapArea(
+                    nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
+                    nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
+                    SolidLayer);
+
+                if(col == null)
                 { //does not collide
                     transform.position = new Vector3 (transform.position.x, transform.position.y + sign, transform.position.z);
                     move -= sign;
+
+                    if(OnMove != null)
+                        OnMove();
                 }
                 else
                 {
+                    ridingObject = col.gameObject.GetComponent<Solid>();
                     if(OnCollide != null)
                         OnCollide();
                     
@@ -94,6 +101,19 @@ public class Agent : MonoBehaviour
         }
     }
 
-    public virtual bool IsRiding(Solid solid) {return false;}
+    public virtual bool IsRiding(Solid solid) 
+    {
+        if(ridingObject == solid) return true;
+        
+        return false;
+    }
+
     public virtual void Squish() {}
+
+    public bool IsRidingAny()
+    {
+        if(ridingObject != null) return true;
+
+        return false;
+    }
 }
