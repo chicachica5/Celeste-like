@@ -95,4 +95,8 @@ public class Solid : MonoBehaviour
             return finalList;
         }
     }
+    
+    public virtual void BeingCollided(Agent agent) {}
+    
 }
+

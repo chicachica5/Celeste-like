@@ -4,6 +4,40 @@ public class Player : Agent
 {
     [SerializeField] PlayerMovement pMovement;
 
+    bool isDying = false;
+
+    int waitFrames = 60;
+    int waitTimer = 0;
+
+    void FixedUpdate()
+    {
+        if(isDying)
+        {
+            waitTimer++;
+
+            if(waitTimer >= waitFrames)
+            {
+                Die();
+            }
+        }
+    }
+
+    override public void SetToDie()
+    {
+        isDying = true;
+        pMovement.SetPlayerState(playerState.dying);
+        waitTimer = 0;
+    }
+
+    public void Die()
+    {
+        //set player position
+        pMovement.RestartToSpawn();
+
+        //reset death state
+        isDying = false;
+    }
+
     public void checkDownCollition() //check if theres something down
     {
         Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.down;
@@ -18,6 +52,8 @@ public class Player : Agent
         if(col == null) ridingObject = null;
         else 
         {
+            col.gameObject.GetComponent<Solid>().BeingCollided(this);
+            
             ridingObject = col.gameObject.GetComponent<Solid>(); // we asume this is already right but just in case
             pMovement.touchedFloor();
         }

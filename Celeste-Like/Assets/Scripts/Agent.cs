@@ -35,12 +35,12 @@ public class Agent : MonoBehaviour
                 Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.right * sign;
                 float padding = 0.03f;
 
-                bool hit = Physics2D.OverlapArea(
+                Collider2D col = Physics2D.OverlapArea(
                     nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
                     nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
                     SolidLayer);
 
-                if(!hit)
+                if(col == null)
                 { //does not collide
                     transform.position = new Vector3 (transform.position.x +sign, transform.position.y, transform.position.z);
                     move -= sign;
@@ -50,6 +50,8 @@ public class Agent : MonoBehaviour
                 }
                 else
                 {
+                    col.gameObject.GetComponent<Solid>().BeingCollided(this);
+
                     if(OnCollide != null)
                         OnCollide();
 
@@ -91,7 +93,6 @@ public class Agent : MonoBehaviour
                 }
                 else
                 {
-                    ridingObject = col.gameObject.GetComponent<Solid>();
                     if(OnCollide != null)
                         OnCollide();
                     
@@ -101,6 +102,7 @@ public class Agent : MonoBehaviour
         }
     }
 
+    public virtual void SetToDie() {}
     public virtual bool IsRiding(Solid solid) 
     {
         if(ridingObject == solid) return true;
