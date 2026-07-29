@@ -100,8 +100,9 @@ public class Agent : MonoBehaviour
                 }
                 else
                 {
+                    Debug.Log("Trigger");
                     if(OnCollide != null)
-                        OnCollide();
+                            OnCollide();
                     
                     break;
                 }

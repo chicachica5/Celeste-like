@@ -27,7 +27,10 @@ public class PlayerMovement : MonoBehaviour
     Hitstop HitstopManager;
     playerState state = playerState.normal;
 
-    float xMoveSpeed = 1.7f;
+    float walkingSpeed = 0f;
+    float walkingAcceleration = 0.2778f;
+    float floorDeceleration = 0.12f;
+    float maxWalkingSpeed = 1.5f;
 
     float maxVelocityY = 3.0f;
     float gravAcceleration = 0.4f;
@@ -36,7 +39,7 @@ public class PlayerMovement : MonoBehaviour
     int fulljumpFrames = 12;
     int jumpTimer = 0;
     int finishJumpFrames;
-    float jumpSpeed = 2f;
+    float jumpSpeed = 1.8f;
     bool isJumping = false;
     bool canJump = true;
 
@@ -45,7 +48,7 @@ public class PlayerMovement : MonoBehaviour
     int dashTimer = 0;
     float dashSpeedX = 2f;
     float dashSpeedY = 2f;
-    float dashNormalSpeed = 4.4f;
+    float dashNormalSpeed = 4f;
     float dashDiagonalSpeed = 3.1f;
 
     float inputX = 0f;
@@ -112,36 +115,53 @@ public class PlayerMovement : MonoBehaviour
                     speedY = 0.0f;
                 }
 
+                //walking shenanigans
+                if(inputX != 0)
+                {
+                    walkingSpeed += inputX * walkingAcceleration;
+                }
+                else
+                {
+                    if(Mathf.Abs(walkingSpeed) < floorDeceleration) walkingSpeed = 0;
+                    else 
+                    {
+                        walkingSpeed -= Mathf.Sign(walkingSpeed)*floorDeceleration;
+                    }
+                }
+
                 //moving x later to avoid collision problems onCollide
                 if(Mathf.Abs(speedY) > maxVelocityY) speedY = Mathf.Sign(speedY)*maxVelocityY;
 
-                agent.MoveY(speedY, agent.checkDownCollition, OnMoveY);
+                if(Mathf.Abs(walkingSpeed) > maxWalkingSpeed) walkingSpeed = Mathf.Sign(walkingSpeed)*maxWalkingSpeed;
+
+                agent.MoveY(speedY, agent.checkDownCollition2, OnMoveY);
 
                 if(inputX != 0) //this will change in the future
                 {
-                    agent.MoveX(Mathf.Sign(inputX)*xMoveSpeed, null, agent.checkDownCollition);
+                    agent.MoveX(walkingSpeed, null, agent.checkDownCollition);
                 }
                 break;
             }
             case playerState.prepareDashing:
             {
                 //check for grabing place
-
-                dashDir = DecideDirection();
-                state = playerState.dashing;
+                Vector2 origin = new Vector2(transform.position.x, transform.position.y);
+                RaycastHit2D hit = Physics2D.Raycast(origin, new Vector2(inputX, inputY), dashNormalSpeed*fullDashFrames, LayerMask.GetMask("Solids")); 
+                if(hit == false) 
+                {
+                    state = playerState.normal;
+                }
+                else
+                {
+                    dashDir = DecideDirection();
+                    state = playerState.dashing;
+                    Dash();
+                }
                 break;
             }
             case playerState.dashing:
             {
-                dashTimer++;
-
-                if(dashSpeedX != 0) agent.MoveX(dashSpeedX, null, agent.checkDownCollition);
-                if(dashSpeedY != 0) agent.MoveY(dashSpeedY, agent.checkDownCollition, agent.checkDownCollition);
-
-                if(dashTimer >= fullDashFrames)
-                {
-                    state = playerState.normal;
-                }
+                Dash();
                 break;
             }
             default: return;
@@ -160,7 +180,7 @@ public class PlayerMovement : MonoBehaviour
     public void touchedFloor()
     {
         //All things that refresh over touching floors
-        if(!isJumping) canJump = true;
+        canJump = true;
 
         canDash = true;
     }
@@ -247,8 +267,24 @@ public class PlayerMovement : MonoBehaviour
         return directions.right;
     }
 
+    void Dash() //this way it can be called from the previous frame
+    {
+        dashTimer++;
+
+        if(dashSpeedX != 0) agent.MoveX(dashSpeedX, null, agent.checkDownCollition);
+        if(dashSpeedY != 0) agent.MoveY(dashSpeedY, agent.checkDownCollition, agent.checkDownCollition);
+
+        if(dashTimer >= fullDashFrames)
+        {
+            state = playerState.normal;
+        }
+    }
+
     void OnJump()
     {
+        Debug.Log(canJump);
+        Debug.Log(isJumping);
+
         if(canJump)
         {
             //jumping things

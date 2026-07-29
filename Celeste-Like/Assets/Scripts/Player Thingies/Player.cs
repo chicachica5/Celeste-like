@@ -67,4 +67,27 @@ public class Player : Agent
             pMovement.touchedFloor();
         }
     }
+
+    public void checkDownCollition2() //check if theres something down
+    {
+        Debug.Log("TRIGGER 2");
+        Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.down;
+
+        float padding = 0.03f;
+
+        Collider2D col = Physics2D.OverlapArea(
+            nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
+            nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
+            SolidLayer);
+
+        if(col == null) ridingObject = null;
+        else 
+        {
+            Debug.Log("Touching");
+            col.gameObject.GetComponent<Solid>().BeingCollided(this);
+            
+            ridingObject = col.gameObject.GetComponent<Solid>(); // we asume this is already right but just in case
+            pMovement.touchedFloor();
+        }
+    }
 }
