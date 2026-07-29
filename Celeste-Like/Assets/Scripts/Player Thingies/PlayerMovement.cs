@@ -27,7 +27,7 @@ public class PlayerMovement : MonoBehaviour
     Hitstop HitstopManager;
     playerState state = playerState.normal;
 
-    float xMoveSpeed = 1f;
+    float xMoveSpeed = 1.7f;
 
     float maxVelocityY = 3.0f;
     float gravAcceleration = 0.4f;
@@ -62,7 +62,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
-        HitstopManager = GameObject.Find("Hitstop Manager").GetComponent<Hitstop>();
+        HitstopManager = GameObject.Find("GameLoop Manager").GetComponent<Hitstop>();
         finishJumpFrames = 15 + (int)Mathf.Round(jumpSpeed / gravAcceleration);
     }
 
@@ -70,13 +70,9 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         ReadInput();
-
-        if(HitstopManager.IsFrozen) return;
-
-        GamePlayUpdate();
     }
 
-    void GamePlayUpdate()
+    public void Step()
     {
         //changing states
         

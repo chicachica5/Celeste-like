@@ -6,7 +6,7 @@ public class Hitstop : MonoBehaviour
 
     public bool IsFrozen => FramesRemaining > 0;
 
-    void LateUpdate()
+    public void Step()
     {
         if (FramesRemaining > 0)
             FramesRemaining--;

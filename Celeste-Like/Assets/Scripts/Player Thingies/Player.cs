@@ -9,7 +9,7 @@ public class Player : Agent
     int waitFrames = 60;
     int waitTimer = 0;
 
-    void Update()
+    override public void Step()
     {
         if(isDying)
         {
@@ -20,6 +20,15 @@ public class Player : Agent
                 Die();
             }
         }
+        else
+        {
+            pMovement.Step();
+        }
+    }
+
+    override public void AddToAgentList()
+    {
+        GameObject.Find("Systems").GetComponent<AgentSystem>().AddPlayer(this);
     }
 
     override public void SetToDie()

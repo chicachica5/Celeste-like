@@ -16,6 +16,13 @@ public class Agent : MonoBehaviour
     void Start()
     {
         SolidLayer = LayerMask.GetMask("Solids");
+        AddToAgentList();
+    }
+
+    virtual public void Step() {}
+    virtual public void AddToAgentList() 
+    {
+        GameObject.Find("Systems").GetComponent<AgentSystem>().AddToList(this);
     }
 
     public void MoveX(float amount, Action OnCollide, Action OnMove)
