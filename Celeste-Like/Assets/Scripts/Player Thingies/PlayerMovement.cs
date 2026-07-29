@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 public enum playerState {
     normal = 0,
-    pause,
+    prepareDashing,
     dashing,
     dying,
 }
@@ -24,9 +24,10 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] Player agent;
     [SerializeField] PlayerInput input;
 
+    Hitstop HitstopManager;
     playerState state = playerState.normal;
 
-    float xMoveSpeed = 1.7f;
+    float xMoveSpeed = 1f;
 
     float maxVelocityY = 3.0f;
     float gravAcceleration = 0.4f;
@@ -47,6 +48,11 @@ public class PlayerMovement : MonoBehaviour
     float dashNormalSpeed = 4.4f;
     float dashDiagonalSpeed = 3.1f;
 
+    float inputX = 0f;
+    float inputY = 0f;
+    float inputJump = 0f;
+    float inputDash = 0f;
+
 
     float speedY = 0.0f;
 
@@ -56,73 +62,103 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
+        HitstopManager = GameObject.Find("Hitstop Manager").GetComponent<Hitstop>();
         finishJumpFrames = 15 + (int)Mathf.Round(jumpSpeed / gravAcceleration);
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
-        if(state == playerState.normal)
+        ReadInput();
+
+        if(HitstopManager.IsFrozen) return;
+
+        GamePlayUpdate();
+    }
+
+    void GamePlayUpdate()
+    {
+        //changing states
+        
+
+        // moving and resolving everyting
+        switch(state)
         {
-            if(isJumping)
+            case playerState.normal:
             {
-                jumpTimer++;
+                if(isJumping) //jumpstate
+                {
+                    jumpTimer++;
 
-                if(jumpTimer >= fulljumpFrames)
-                {
-                    disableGravity = false; 
-                }
-                else if(jumpTimer >= finishJumpFrames)
-                {
-                    isJumping = false;
+                    if(jumpTimer >= fulljumpFrames)
+                    {
+                        disableGravity = false; 
+                    }
+                    else if(jumpTimer >= finishJumpFrames)
+                    {
+                        isJumping = false;
+                    }
+
+                    if(inputJump == 0)
+                    {
+                        if(speedY > 0.0f) speedY = 0.0f;
+                        disableGravity = false;
+                        isJumping = false;
+                    }
                 }
 
-                if(input.actions["Jump"].ReadValue<float>() == 0)
+                if(!agent.IsRidingAny() && disableGravity == false) //apply gravity
                 {
-                    if(speedY > 0.0f) speedY = 0.0f;
-                    disableGravity = false;
-                    isJumping = false;
+                    speedY -= gravAcceleration;
                 }
+                else if(agent.IsRidingAny() && speedY < 0.0f)
+                {  
+                    speedY = 0.0f;
+                }
+
+                //moving x later to avoid collision problems onCollide
+                if(Mathf.Abs(speedY) > maxVelocityY) speedY = Mathf.Sign(speedY)*maxVelocityY;
+
+                agent.MoveY(speedY, agent.checkDownCollition, OnMoveY);
+
+                if(inputX != 0) //this will change in the future
+                {
+                    agent.MoveX(Mathf.Sign(inputX)*xMoveSpeed, null, agent.checkDownCollition);
+                }
+                break;
             }
-
-            if(!agent.IsRidingAny() && disableGravity == false)
+            case playerState.prepareDashing:
             {
-                //Apply gravity
-                speedY -= gravAcceleration;
+                //check for grabing place
+
+                dashDir = DecideDirection();
+                state = playerState.dashing;
+                break;
             }
-            else if(agent.IsRidingAny() && speedY < 0.0f)
-            {  
-                speedY = 0.0f;
-            }
-
-            //moving x later to avoid collision problems onCollide
-            if(Mathf.Abs(speedY) > maxVelocityY) speedY = Mathf.Sign(speedY)*maxVelocityY;
-
-            agent.MoveY(speedY, agent.checkDownCollition, OnMoveY);
-
-
-            float move = input.actions["Move"].ReadValue<float>();
-
-            if(move != 0) //this will change in the future
+            case playerState.dashing:
             {
-                agent.MoveX(Mathf.Sign(move)*xMoveSpeed, null, agent.checkDownCollition);
+                dashTimer++;
+
+                if(dashSpeedX != 0) agent.MoveX(dashSpeedX, null, agent.checkDownCollition);
+                if(dashSpeedY != 0) agent.MoveY(dashSpeedY, agent.checkDownCollition, agent.checkDownCollition);
+
+                if(dashTimer >= fullDashFrames)
+                {
+                    state = playerState.normal;
+                }
+                break;
             }
+            default: return;
         }
+    }
 
-        else if(state == playerState.dashing)
-        {
-            dashTimer++;
+    void ReadInput()
+    {
+        inputX = input.actions["Move"].ReadValue<float>();
+        inputY = input.actions["Look"].ReadValue<float>();
 
-            if(dashSpeedX != 0) agent.MoveX(dashSpeedX, null, agent.checkDownCollition);
-            if(dashSpeedY != 0) agent.MoveY(dashSpeedY, agent.checkDownCollition, agent.checkDownCollition);
-
-
-
-            if(dashTimer >= fullDashFrames)
-            {
-                state = playerState.normal;
-            }
-        }
+        inputJump = input.actions["Jump"].ReadValue<float>();
+        inputDash = input.actions["Dash"].ReadValue<float>();
     }
 
     public void touchedFloor()
@@ -157,51 +193,53 @@ public class PlayerMovement : MonoBehaviour
         state = playerState.normal;
     }
 
-    directions DecideDirection(float move, float look)
+    directions DecideDirection()
     {
-        if(move == 1 && look == 1)
+        Debug.Log(inputX);
+        Debug.Log(inputY);
+        if(inputX == 1 && inputY == 1)
         {
             dashSpeedX = dashDiagonalSpeed;
             dashSpeedY = dashDiagonalSpeed;
             return directions.up_right;
         }
-        else if(move == 1 && look == -1)
+        else if(inputX == 1 && inputY == -1)
         {
             dashSpeedX = dashDiagonalSpeed;
             dashSpeedY = -dashDiagonalSpeed;
             return directions.up_left;
         }
-        else if(move == -1 && look == 1)
+        else if(inputX == -1 && inputY == 1)
         {
             dashSpeedX = -dashDiagonalSpeed;
             dashSpeedY = dashDiagonalSpeed;
             return directions.down_right;
         }
-        else if(move == -1 && look == -1)
+        else if(inputX == -1 && inputY == -1)
         {
             dashSpeedX = -dashDiagonalSpeed;
             dashSpeedY = -dashDiagonalSpeed;
             return directions.down_left;
         }
-        else if(move == 1)
+        else if(inputX == 1)
         {
             dashSpeedX = dashNormalSpeed;
             dashSpeedY = 0f;
             return directions.up;
         }
-        else if(move == -1)
+        else if(inputX == -1)
         {
             dashSpeedX = -dashNormalSpeed;
             dashSpeedY = 0f;
             return directions.down;
         }
-        else if(look == 1)
+        else if(inputY == 1)
         {
             dashSpeedX = 0f;
             dashSpeedY = dashNormalSpeed;
             return directions.right;
         }
-        else if(look == -1)
+        else if(inputY == -1)
         {
             dashSpeedX = 0f;
             dashSpeedY = -dashNormalSpeed;
@@ -233,15 +271,10 @@ public class PlayerMovement : MonoBehaviour
         {
             //dashing things
             canDash = false;
-            state = playerState.dashing;
+            state = playerState.prepareDashing;
             dashTimer = 0;
 
-            float move = input.actions["Move"].ReadValue<float>();
-            float look = input.actions["Look"].ReadValue<float>();
-
-            Debug.Log(move);
-            Debug.Log(look);
-            dashDir = DecideDirection(move, look);
+            HitstopManager.Freeze(3); //freeze 30 frames
         }
     }
 }

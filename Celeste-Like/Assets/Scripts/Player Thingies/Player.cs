@@ -9,7 +9,7 @@ public class Player : Agent
     int waitFrames = 60;
     int waitTimer = 0;
 
-    void FixedUpdate()
+    void Update()
     {
         if(isDying)
         {
