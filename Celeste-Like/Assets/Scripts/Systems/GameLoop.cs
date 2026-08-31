@@ -37,8 +37,6 @@ public class GameLoop : MonoBehaviour
 
         agents.Step();
         solids.Step();
-
-        //playerSystem.Step();
         //enemySystem.Step();
         //platformSystem.Step();
         // projectileSystem.Step();

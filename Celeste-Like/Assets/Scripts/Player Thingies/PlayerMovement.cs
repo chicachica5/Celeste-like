@@ -5,6 +5,7 @@ public enum playerState {
     normal = 0,
     prepareDashing,
     dashing,
+    climbing,
     dying,
 }
 
@@ -55,7 +56,24 @@ public class PlayerMovement : MonoBehaviour
     float inputY = 0f;
     float inputJump = 0f;
     float inputDash = 0f;
+    float inputClimb = 0f;
 
+    float climbSpeed = 1.0f;
+
+    Vector2 velocity;
+
+    float coyoteTime = 0.10f;
+    float jumpBufferTime = 0.10f;
+    float dashBufferTime = 0.10f;
+ 
+
+    float coyoteTimer = 0f;
+    float jumpBufferTimer = 0f;
+    float dashBufferTimer = 0f;
+    float grabBufferTimer = 0f;
+
+    bool jumpHeld = false;
+    bool dashHeld = false;
 
     float speedY = 0.0f;
 
@@ -73,14 +91,63 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         ReadInput();
+        BufferManager();
+    }
+
+    void BufferManager()
+    {
+        float delta = Time.deltaTime;
+
+        if(agent.IsGrounded())
+        {
+            coyoteTimer = coyoteTime;
+        }
+        else
+        {
+            coyoteTimer = Mathf.Max(0f, coyoteTimer - delta);
+        }
+
+        jumpBufferTimer = Mathf.Max(0f, jumpBufferTimer - delta);
+        dashBufferTimer = Mathf.Max(0f, dashBufferTimer - delta);
+        grabBufferTimer = Mathf.Max(0f, grabBufferTimer - delta);
+
+        bool jumpPressedThisFrame = inputJump > 0f && !jumpHeld;
+        bool dashPressedThisFrame = inputDash > 0f && !dashHeld;
+
+        if(jumpPressedThisFrame)
+        {
+            jumpBufferTimer = jumpBufferTime;
+        }
+
+        if(dashPressedThisFrame)
+        {
+            dashBufferTimer = dashBufferTime;
+        }
+
+        if(jumpBufferTimer > 0f && coyoteTimer > 0f && state == playerState.normal && !isJumping)
+        {
+            jumpBufferTimer = 0f;
+            OnJump();
+        }
+
+        if(dashBufferTimer > 0f
+            && canDash
+            && state == playerState.normal
+            && !HitstopManager.IsFrozen)
+        {
+            dashBufferTimer = 0f;
+            canDash = false;
+            state = playerState.prepareDashing;
+            dashTimer = 0;
+            HitstopManager.Freeze(3);
+        }
+
+        jumpHeld = inputJump > 0f;
+        dashHeld = inputDash > 0f;
     }
 
     public void Step()
     {
-        //changing states
-        
-
-        // moving and resolving everyting
         switch(state)
         {
             case playerState.normal:
@@ -106,11 +173,11 @@ public class PlayerMovement : MonoBehaviour
                     }
                 }
 
-                if(!agent.IsRidingAny() && disableGravity == false) //apply gravity
+                if(!agent.IsGrounded() && disableGravity == false) //apply gravity
                 {
                     speedY -= gravAcceleration;
                 }
-                else if(agent.IsRidingAny() && speedY < 0.0f)
+                else if(agent.IsGrounded() && speedY < 0.0f)
                 {  
                     speedY = 0.0f;
                 }
@@ -134,11 +201,28 @@ public class PlayerMovement : MonoBehaviour
 
                 if(Mathf.Abs(walkingSpeed) > maxWalkingSpeed) walkingSpeed = Mathf.Sign(walkingSpeed)*maxWalkingSpeed;
 
-                agent.MoveY(speedY, agent.checkDownCollition2, OnMoveY);
+                velocity = new Vector2(walkingSpeed, speedY);
+
+                agent.MoveY(velocity.y, agent.CheckGroundCollision, OnMoveY);
 
                 if(inputX != 0) //this will change in the future
                 {
-                    agent.MoveX(walkingSpeed, null, agent.checkDownCollition);
+                    agent.MoveX(velocity.x, OnWallCollision, agent.CheckGroundCollision);
+                }
+                break;
+            }
+            case playerState.climbing:
+            {
+                speedY = inputY * climbSpeed;
+
+                velocity = new Vector2(0f, speedY);
+                agent.MoveY(velocity.y, agent.CheckGroundCollision, OnMoveY);
+
+
+                if(inputClimb == 0.0f)
+                {
+                    state = playerState.normal;
+                    disableGravity = false;
                 }
                 break;
             }
@@ -170,18 +254,21 @@ public class PlayerMovement : MonoBehaviour
 
     void ReadInput()
     {
+        if(input == null)
+            return;
+
         inputX = input.actions["Move"].ReadValue<float>();
         inputY = input.actions["Look"].ReadValue<float>();
 
         inputJump = input.actions["Jump"].ReadValue<float>();
         inputDash = input.actions["Dash"].ReadValue<float>();
+        inputClimb = input.actions["Climb"].ReadValue<float>();
     }
 
     public void touchedFloor()
     {
         //All things that refresh over touching floors
         canJump = true;
-
         canDash = true;
     }
 
@@ -211,8 +298,6 @@ public class PlayerMovement : MonoBehaviour
 
     directions DecideDirection()
     {
-        Debug.Log(inputX);
-        Debug.Log(inputY);
         if(inputX == 1 && inputY == 1)
         {
             dashSpeedX = dashDiagonalSpeed;
@@ -267,12 +352,24 @@ public class PlayerMovement : MonoBehaviour
         return directions.right;
     }
 
+    void OnWallCollision()
+    {
+        if(state != playerState.normal)
+            return;
+
+        if(inputClimb != 0.0f) //enter climbstate
+        {
+            disableGravity = true;
+            state = playerState.climbing;
+        }
+    }
+
     void Dash() //this way it can be called from the previous frame
     {
         dashTimer++;
 
-        if(dashSpeedX != 0) agent.MoveX(dashSpeedX, null, agent.checkDownCollition);
-        if(dashSpeedY != 0) agent.MoveY(dashSpeedY, agent.checkDownCollition, agent.checkDownCollition);
+        if(dashSpeedX != 0) agent.MoveX(dashSpeedX, null, agent.CheckGroundCollision);
+        if(dashSpeedY != 0) agent.MoveY(dashSpeedY, agent.CheckGroundCollision, agent.CheckGroundCollision);
 
         if(dashTimer >= fullDashFrames)
         {
@@ -282,12 +379,8 @@ public class PlayerMovement : MonoBehaviour
 
     void OnJump()
     {
-        Debug.Log(canJump);
-        Debug.Log(isJumping);
-
         if(canJump)
         {
-            //jumping things
             canJump = false;
             isJumping = true;
             jumpTimer = 0;
@@ -301,12 +394,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if(canDash)
         {
-            //dashing things
-            canDash = false;
-            state = playerState.prepareDashing;
-            dashTimer = 0;
-
-            HitstopManager.Freeze(3); //freeze 30 frames
+            dashBufferTimer = dashBufferTime;
         }
     }
 }

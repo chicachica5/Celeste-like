@@ -27,85 +27,54 @@ public class Agent : MonoBehaviour
 
     public void MoveX(float amount, Action OnCollide, Action OnMove)
     {
-        xRemainder += amount; //add change of movement to tracker
-
-        int move = (int)Mathf.Round(xRemainder);
-
-        if(move != 0) //movement was added and we move agenta pixel or so
-        {
-            xRemainder -= move;
-            int sign = (int)Mathf.Sign(move);
-
-            while(move != 0) //we move all the pixels that need to be moved
-            {
-                
-                Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.right * sign;
-                float padding = 0.03f;
-
-                Collider2D col = Physics2D.OverlapArea(
-                    nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
-                    nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
-                    SolidLayer);
-
-                if(col == null)
-                { //does not collide
-                    transform.position = new Vector3 (transform.position.x +sign, transform.position.y, transform.position.z);
-                    move -= sign;
-
-                    if(OnMove != null)
-                        OnMove();
-                }
-                else
-                {
-                    col.gameObject.GetComponent<Solid>().BeingCollided(this);
-
-                    if(OnCollide != null)
-                        OnCollide();
-
-                    break;
-                }
-            }
-        }
+        MoveAxis(ref xRemainder, Vector2.right, amount, OnCollide, OnMove);
     }
 
     public void MoveY(float amount, Action OnCollide, Action OnMove)
     {
-        yRemainder += amount; //add change of movement to tracker
+        MoveAxis(ref yRemainder, Vector2.up, amount, OnCollide, OnMove);
+    }
 
-        int move = (int)Mathf.Round(yRemainder);
+    void MoveAxis(ref float remainder, Vector2 axis, float amount, Action onCollide, Action onMove)
+    {
+        remainder += amount;
 
-        if(move != 0) //movement was added and we move agenta pixel or so
+        int move = Mathf.RoundToInt(remainder);
+
+        if(move == 0)
+            return;
+
+        remainder -= move;
+        int sign = (int)Mathf.Sign(move);
+
+        while(move != 0)
         {
-            yRemainder -= move;
-            int sign = (int)Mathf.Sign(move);
+            Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + axis * sign;
+            float padding = 0.03f;
 
-            while(move != 0) //we move all the pixels that need to be moved
+            Collider2D col = Physics2D.OverlapArea(
+                nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
+                nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
+                SolidLayer);
+
+            if(col == null)
             {
-                Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.up * sign;
+                transform.position += new Vector3(axis.x, axis.y, 0f) * sign;
+                move -= sign;
 
-                float padding = 0.03f;
+                if(onMove != null)
+                    onMove();
+            }
+            else
+            {
+                Solid solid = col.gameObject.GetComponent<Solid>();
+                if(solid != null)
+                    solid.BeingCollided(this);
 
-                Collider2D col = Physics2D.OverlapArea(
-                    nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
-                    nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
-                    SolidLayer);
+                if(onCollide != null)
+                    onCollide();
 
-                if(col == null)
-                { //does not collide
-                    transform.position = new Vector3 (transform.position.x, transform.position.y + sign, transform.position.z);
-                    move -= sign;
-
-                    if(OnMove != null)
-                        OnMove();
-                }
-                else
-                {
-                    Debug.Log("Trigger");
-                    if(OnCollide != null)
-                            OnCollide();
-                    
-                    break;
-                }
+                break;
             }
         }
     }

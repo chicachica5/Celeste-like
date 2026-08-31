@@ -1,5 +1,11 @@
 using UnityEngine;
 
+public enum wallSide {
+    none = 0,
+    left,
+    right,
+}
+
 public class Player : Agent
 {
     [SerializeField] PlayerMovement pMovement;
@@ -47,7 +53,46 @@ public class Player : Agent
         isDying = false;
     }
 
-    public void checkDownCollition() //check if theres something down
+    public bool IsGrounded()
+    {
+        return ridingObject != null;
+    }
+
+    public bool IsTouchingWall(out wallSide side)
+    {
+        side = wallSide.none;
+
+        Vector2 checkCenter = new Vector2(transform.position.x, transform.position.y);
+        Vector2 boxSize = new Vector2(0.15f, sizeY * 0.8f);
+
+        Vector2 leftCenter = checkCenter + new Vector2(-(sizeX / 2f + 0.1f), 0f);
+        Vector2 rightCenter = checkCenter + new Vector2((sizeX / 2f + 0.1f), 0f);
+
+        Collider2D colLeft = Physics2D.OverlapBox(leftCenter, boxSize, 0f, SolidLayer);
+        if(colLeft != null)
+        {
+            side = wallSide.left;
+            Debug.DrawLine(leftCenter - (Vector2)(boxSize * 0.5f), leftCenter + (Vector2)(boxSize * 0.5f), Color.yellow, 2f);
+            Debug.DrawLine(leftCenter - new Vector2(boxSize.x * 0.5f, -boxSize.y * 0.5f), leftCenter + new Vector2(boxSize.x * 0.5f, -boxSize.y * 0.5f), Color.yellow, 2f);
+            Debug.Log("Wall grab check: left wall detected.");
+            return true;
+        }
+
+        Collider2D colRight = Physics2D.OverlapBox(rightCenter, boxSize, 0f, SolidLayer);
+        if(colRight != null)
+        {
+            side = wallSide.right;
+            Debug.DrawLine(rightCenter - (Vector2)(boxSize * 0.5f), rightCenter + (Vector2)(boxSize * 0.5f), Color.yellow, 2f);
+            Debug.DrawLine(rightCenter - new Vector2(boxSize.x * 0.5f, -boxSize.y * 0.5f), rightCenter + new Vector2(boxSize.x * 0.5f, -boxSize.y * 0.5f), Color.yellow, 2f);
+            Debug.Log("Wall grab check: right wall detected.");
+            return true;
+        }
+
+        Debug.Log("Wall grab check: no wall collision detected.");
+        return false;
+    }
+
+    public void CheckGroundCollision()
     {
         Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.down;
 
@@ -58,36 +103,28 @@ public class Player : Agent
             nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
             SolidLayer);
 
-        if(col == null) ridingObject = null;
-        else 
+        if(col == null)
         {
-            col.gameObject.GetComponent<Solid>().BeingCollided(this);
-            
-            ridingObject = col.gameObject.GetComponent<Solid>(); // we asume this is already right but just in case
-            pMovement.touchedFloor();
+            ridingObject = null;
+            return;
         }
+
+        Solid solid = col.gameObject.GetComponent<Solid>();
+        if(solid == null)
+            return;
+
+        solid.BeingCollided(this);
+        ridingObject = solid;
+        pMovement.touchedFloor();
+    }
+
+    public void checkDownCollition() //check if theres something down
+    {
+        CheckGroundCollision();
     }
 
     public void checkDownCollition2() //check if theres something down
     {
-        Debug.Log("TRIGGER 2");
-        Vector2 nextPos = new Vector2(transform.position.x, transform.position.y) + Vector2.down;
-
-        float padding = 0.03f;
-
-        Collider2D col = Physics2D.OverlapArea(
-            nextPos + new Vector2(-sizeX / 2f, -sizeY / 2f) + Vector2.one * padding,
-            nextPos + new Vector2( sizeX / 2f,  sizeY / 2f) - Vector2.one * padding,
-            SolidLayer);
-
-        if(col == null) ridingObject = null;
-        else 
-        {
-            Debug.Log("Touching");
-            col.gameObject.GetComponent<Solid>().BeingCollided(this);
-            
-            ridingObject = col.gameObject.GetComponent<Solid>(); // we asume this is already right but just in case
-            pMovement.touchedFloor();
-        }
+        CheckGroundCollision();
     }
 }
