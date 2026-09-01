@@ -6,6 +6,7 @@ public enum playerState {
     prepareDashing,
     dashing,
     climbing,
+    swing,
     dying,
 }
 
@@ -57,6 +58,7 @@ public class PlayerMovement : MonoBehaviour
     float inputJump = 0f;
     float inputDash = 0f;
     float inputClimb = 0f;
+    float inputSwing = 0f;
 
     float climbSpeed = 1.0f;
 
@@ -74,6 +76,7 @@ public class PlayerMovement : MonoBehaviour
 
     bool jumpHeld = false;
     bool dashHeld = false;
+    bool swingHeld = false;
 
     float speedY = 0.0f;
 
@@ -81,10 +84,29 @@ public class PlayerMovement : MonoBehaviour
 
     directions dashDir;
 
+    Vector2 swingAnchor;
+    float swingLength;
+    Vector2 swingVelocity;
+    LineRenderer swingRope;
+    bool preserveReleaseMomentum = false;
+
     void Start()
     {
         HitstopManager = GameObject.Find("GameLoop Manager").GetComponent<Hitstop>();
         finishJumpFrames = 15 + (int)Mathf.Round(jumpSpeed / gravAcceleration);
+
+        swingRope = GetComponent<LineRenderer>();
+        if(swingRope == null)
+            swingRope = gameObject.AddComponent<LineRenderer>();
+
+        swingRope.positionCount = 2;
+        swingRope.useWorldSpace = true;
+        swingRope.startWidth = 0.08f;
+        swingRope.endWidth = 0.08f;
+        swingRope.material = new Material(Shader.Find("Sprites/Default"));
+        swingRope.startColor = Color.white;
+        swingRope.endColor = Color.white;
+        swingRope.enabled = false;
     }
 
     // Update is called once per frame
@@ -113,6 +135,7 @@ public class PlayerMovement : MonoBehaviour
 
         bool jumpPressedThisFrame = inputJump > 0f && !jumpHeld;
         bool dashPressedThisFrame = inputDash > 0f && !dashHeld;
+        bool swingPressedThisFrame = inputSwing > 0f && !swingHeld;
 
         if(jumpPressedThisFrame)
         {
@@ -142,8 +165,12 @@ public class PlayerMovement : MonoBehaviour
             HitstopManager.Freeze(3);
         }
 
+        if(swingPressedThisFrame && state == playerState.normal && !HitstopManager.IsFrozen)
+            TryStartSwing();
+
         jumpHeld = inputJump > 0f;
         dashHeld = inputDash > 0f;
+        swingHeld = inputSwing > 0f;
     }
 
     public void Step()
@@ -197,15 +224,18 @@ public class PlayerMovement : MonoBehaviour
                 }
 
                 //moving x later to avoid collision problems onCollide
-                if(Mathf.Abs(speedY) > maxVelocityY) speedY = Mathf.Sign(speedY)*maxVelocityY;
+                if(!preserveReleaseMomentum && Mathf.Abs(speedY) > maxVelocityY)
+                    speedY = Mathf.Sign(speedY)*maxVelocityY;
 
-                if(Mathf.Abs(walkingSpeed) > maxWalkingSpeed) walkingSpeed = Mathf.Sign(walkingSpeed)*maxWalkingSpeed;
+                if(!preserveReleaseMomentum && Mathf.Abs(walkingSpeed) > maxWalkingSpeed)
+                    walkingSpeed = Mathf.Sign(walkingSpeed)*maxWalkingSpeed;
+                preserveReleaseMomentum = false;
 
                 velocity = new Vector2(walkingSpeed, speedY);
 
                 agent.MoveY(velocity.y, agent.CheckGroundCollision, OnMoveY);
 
-                if(inputX != 0) //this will change in the future
+                if(inputX != 0 || Mathf.Abs(walkingSpeed) > 0.001f)
                 {
                     agent.MoveX(velocity.x, OnWallCollision, agent.CheckGroundCollision);
                 }
@@ -248,6 +278,11 @@ public class PlayerMovement : MonoBehaviour
                 Dash();
                 break;
             }
+            case playerState.swing:
+            {
+                Swing();
+                break;
+            }
             default: return;
         }
     }
@@ -263,6 +298,8 @@ public class PlayerMovement : MonoBehaviour
         inputJump = input.actions["Jump"].ReadValue<float>();
         inputDash = input.actions["Dash"].ReadValue<float>();
         inputClimb = input.actions["Climb"].ReadValue<float>();
+
+        inputSwing = input.actions["Swing"].ReadValue<float>();
     }
 
     public void touchedFloor()
@@ -294,6 +331,7 @@ public class PlayerMovement : MonoBehaviour
 
         //after restart set player to normal state
         state = playerState.normal;
+        swingRope.enabled = false;
     }
 
     directions DecideDirection()
@@ -362,6 +400,76 @@ public class PlayerMovement : MonoBehaviour
             disableGravity = true;
             state = playerState.climbing;
         }
+    }
+
+    void TryStartSwing()
+    {
+        Vector2 origin = new Vector2(transform.position.x, transform.position.y);
+        
+        RaycastHit2D hit = Physics2D.Raycast(origin, new Vector2(inputX, inputY), dashNormalSpeed*fullDashFrames, LayerMask.GetMask("Solids")); 
+        
+        if(hit.collider == null)
+            return;
+        swingAnchor = hit.point;
+        swingLength = Vector2.Distance(origin, swingAnchor);
+        if(swingLength <= 0.01f)
+            return;
+        swingVelocity = new Vector2(walkingSpeed, speedY);
+        state = playerState.swing;
+        swingRope.enabled = true;
+        UpdateSwingRope();
+    }
+
+    void Swing()
+    {
+        if(inputSwing <= 0f)
+        {
+            ReleaseSwing();
+            return;
+        }
+        Vector2 oldPosition = transform.position;
+        Vector2 offset = oldPosition - swingAnchor;
+        if(offset.sqrMagnitude <= 0.0001f)
+            offset = Vector2.down * swingLength;
+        Vector2 radial = offset.normalized;
+        Vector2 tangent = new Vector2(-radial.y, radial.x);
+        swingVelocity += Vector2.down * gravAcceleration;
+        swingVelocity = Vector2.Dot(swingVelocity, tangent) * tangent;
+        Vector2 target = swingAnchor + (offset + swingVelocity).normalized * swingLength;
+        Vector2 movement = target - (Vector2)transform.position;
+        agent.MoveX(movement.x, null, null);
+        agent.MoveY(movement.y, null, null);
+        Vector2 actualOffset = (Vector2)transform.position - swingAnchor;
+        if(actualOffset.sqrMagnitude > 0.0001f)
+        {
+            Vector2 constrainedPosition = swingAnchor + actualOffset.normalized * swingLength;
+            Vector2 correction = constrainedPosition - (Vector2)transform.position;
+            agent.MoveX(correction.x, null, null);
+            agent.MoveY(correction.y, null, null);
+        }
+        Vector2 newOffset = (Vector2)transform.position - swingAnchor;
+        Vector2 newRadial = newOffset.sqrMagnitude > 0.0001f ? newOffset.normalized : radial;
+        Vector2 intendedVelocity = target - oldPosition;
+        swingVelocity = intendedVelocity - Vector2.Dot(intendedVelocity, newRadial) * newRadial;
+        UpdateSwingRope();
+    }
+
+    void ReleaseSwing()
+    {
+        Vector2 offset = ((Vector2)transform.position - swingAnchor).normalized;
+        Vector2 tangent = new Vector2(-offset.y, offset.x);
+        Vector2 releaseVelocity = Vector2.Dot(swingVelocity, tangent) * tangent;
+        walkingSpeed = releaseVelocity.x;
+        speedY = releaseVelocity.y;
+        preserveReleaseMomentum = true;
+        state = playerState.normal;
+        swingRope.enabled = false;
+    }
+
+    void UpdateSwingRope()
+    {
+            swingRope.SetPosition(0, swingAnchor);
+            swingRope.SetPosition(1, transform.position);
     }
 
     void Dash() //this way it can be called from the previous frame
